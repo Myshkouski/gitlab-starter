@@ -1,0 +1,102 @@
+version: "3.8"
+services:
+
+  gitlab:
+    image: gitlab/gitlab-ce:${GITLAB_VERSION}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - gitlab_data:/var/opt/gitlab
+    shm_size: 256m
+    environment:
+      GITLAB_OMNIBUS_CONFIG: from_file('/omnibus_config.rb')
+    deploy:
+      restart_policy:
+        condition: unless-stopped
+    configs:
+      - source: gitlab
+        target: /omnibus_config.rb
+    secrets:
+      - gitlab_root_password
+      - gitlab_runner_registration_token
+      - gitlab_postgres_db
+      - gitlab_postgres_user
+      - gitlab_postgres_password
+    healthcheck:
+      test: curl -f http://localhost || exit 1
+    depends_on:
+      gitlab-postgres:
+        condition: service_healthy
+
+  gitlab-postgres:
+    image: postgres:${POSTGRES_VERSION}
+    volumes:
+      - gitlab_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/gitlab_postgres_db
+      POSTGRES_USER_FILE: /run/secrets/gitlab_postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/gitlab_postgres_password
+    healthcheck:
+      test: pg_isready || exit 1
+    deploy:
+      restart_policy:
+        condition: unless-stopped
+    # ports:
+    #   - 5432:5432
+    secrets:
+      - gitlab_postgres_db
+      - gitlab_postgres_user
+      - gitlab_postgres_password
+
+  gitlab-runner:
+    build:
+      context: ./gitlab-runner/build
+      args:
+        - GITLAB_RUNNER_VERSION=${GITLAB_RUNNER_VERSION}
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CI_SERVER_URL: http://gitlab/
+      RUNNER_NAME: shared-runner
+      REGISTER_NON_INTERACTIVE: true
+      REGISTRATION_TOKEN_FILE: /run/secrets/gitlab_runner_registration_token
+      DESCRIPTION: Docker shared runner
+    secrets:
+      - gitlab_runner_registration_token
+    depends_on:
+      gitlab:
+         condition: service_healthy
+    # TODO:
+    # healthcheck
+    # healthcheck:
+    deploy:
+      mode: replicated
+      replicas: 4
+      restart_policy:
+        condition: unless-stopped
+
+configs:
+  gitlab:
+    file: ./gitlab/config/gitlab.rb
+
+secrets:
+  gitlab_root_password:
+    file: ./gitlab/secrets/root-password.txt
+  gitlab_runner_registration_token:
+    file: ./gitlab/secrets/runner-registration-token.txt
+  gitlab_postgres_db:
+    file: ./postgres/secrets/db.txt
+  gitlab_postgres_user:
+    file: ./postgres/secrets/user.txt
+  gitlab_postgres_password:
+    file: ./postgres/secrets/password.txt
+
+volumes:
+  gitlab_data:
+  gitlab_postgres_data:
+
+networks:
+  gitlab:
+    internal: true
