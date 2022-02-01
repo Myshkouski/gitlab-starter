@@ -11,6 +11,8 @@ services:
     shm_size: 256m
     environment:
       GITLAB_OMNIBUS_CONFIG: from_file('/omnibus_config.rb')
+    env_file:
+      - gitlab.env
     deploy:
       restart_policy:
         condition: unless-stopped
