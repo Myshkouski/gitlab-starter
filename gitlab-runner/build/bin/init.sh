@@ -44,9 +44,8 @@ verify() {
 }
 
 register() {
-  # '--description' flag is empty cause it overrides RUNNER_NAME env var
+  # Do NOT use '--description' flag: it overrides RUNNER_NAME env var
   gitlab-runner register \
-    --description "" \
     --executor docker \
     --docker-image "docker:stable" \
     --docker-volumes "/var/run/docker.sock:/var/run/docker.sock"
