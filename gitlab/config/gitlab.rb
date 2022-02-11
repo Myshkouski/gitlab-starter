@@ -1,4 +1,5 @@
-external_url "#{ENV['GITLAB_EXTERNAL_URL']}"
+external_url "#{ENV['GITLAB_EXTERNAL_URL'] || "localhost" }"
+registry_external_url "#{ENV['GITLAB_REGISTRY_EXTERNAL_URL'] || external_url}"
 gitlab_rails['initial_root_password'] = File.read('/run/secrets/gitlab_root_password')
 # GitLab Runner registration token
 gitlab_rails['initial_shared_runners_registration_token'] = File.read('/run/secrets/gitlab_runner_registration_token')
