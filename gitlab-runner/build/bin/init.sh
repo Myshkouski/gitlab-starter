@@ -24,11 +24,10 @@ print_env_var_value() {
 check_env_var_is_not_empty() {
   local name=$1
   local value=$(print_env_var_value "$name")
-  # echo $name=$value
   [ ! -z "$value" ]
 }
 
-for var in "RUNNER_NAME" "CI_SERVER_URL"
+for var in "RUNNER_NAME" "CI_SERVER_URL" "REGISTRATION_TOKEN"
 do
   check_env_var_is_not_empty "$var" || exit_illegal_env_var "$var"
 done
